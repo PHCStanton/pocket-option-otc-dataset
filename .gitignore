@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Large local distribution files (samples remain tracked)
+data/parquet/
+data/csv_gz/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Jupyter temporary cache, checkpoints & scratch notebooks
+.ipynb_checkpoints/
+.virtual_documents/
+Untitled*.ipynb
+Untitled Folder/
