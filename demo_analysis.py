@@ -94,6 +94,28 @@ def main():
     print(f"- Optimal Execution Ticks (Liq 30-70%, Vol 20-80%): {len(optimal_ticks):,} ({pct_optimal:.1f}%)")
     print(f"- Mean Tick Velocity: {df['ticks_per_min'].mean():.1f} ticks/min")
     print(f"- Mean Sigmoid Liquidity: {df['sigmoid_liquidity'].mean():.1f}%")
+    print("\n" + "=" * 60)
+
+    # 5. Market Manipulation Regime Analysis (Push & Snap and Pinning)
+    if "is_manipulated" in df.columns:
+        print("\n--- Market Manipulation Regime Analysis ---")
+        manip_ticks = df[df["is_manipulated"] == 1]
+        pct_manip = (len(manip_ticks) / len(df)) * 100.0
+        print(f"Manipulated Ticks Detected: {len(manip_ticks):,} / {len(df):,} ({pct_manip:.2f}%)")
+        print(f"\nManipulation Type Distribution:")
+        print(df["manipulation_type"].value_counts())
+
+        push_snaps = df[df["push_snap_severity"] > 0]
+        if not push_snaps.empty:
+            print(f"\n- Push & Snap Events: {len(push_snaps):,} ticks (Mean Severity: {push_snaps['push_snap_severity'].mean():.3f}, Max: {push_snaps['push_snap_severity'].max():.3f})")
+        
+        pinnings = df[df["pinning_severity"] > 0]
+        if not pinnings.empty:
+            print(f"- Pinning Clusters: {len(pinnings):,} ticks (Mean Severity: {pinnings['pinning_severity'].mean():.3f}, Max: {pinnings['pinning_severity'].max():.3f})")
+        
+        clean_ticks = df[df["is_manipulated"] == 0]
+        print(f"\nClean Execution Ticks (Safe for Signal Execution): {len(clean_ticks):,} ({100.0 - pct_manip:.2f}%)")
+
     print("\nReady for quantitative strategy backtesting and ML model training!")
 
 

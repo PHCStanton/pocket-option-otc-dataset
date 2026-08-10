@@ -14,6 +14,7 @@ Engineered specifically for **Quantitative Researchers, Binary Options Algorithm
 ## 🚀 Key Features
 
 - **Sub-Second Tick Resolution:** Captures real-time micro-price fluctuations (~500ms arrival rate).
+- **Institutional Market Manipulation Detection:** Real-time metrics for **Push & Snap** (liquidity grab velocity spikes with exponential time decay) and **Pinning** (artificial price clustering and stall zones).
 - **Gap-Aware Session Segmentation:** Includes an automated `session_id` column that groups continuous trading sessions, preventing cross-gap indicator distortion during backtests.
 - **Enriched Indicator Features:** Pre-calculated rolling **Tick Density (tpm)**, **Sigmoid Liquidity %**, **Normalized Volatility Score**, and **Realized Micro-Spread**.
 - **Dual Optimized Formats:** Delivered in ultra-fast, compressed **Apache Parquet (`.parquet`)** and universal **Gzip CSV (`.csv.gz`)**.
@@ -35,6 +36,10 @@ Engineered specifically for **Quantitative Researchers, Binary Options Algorithm
 | `liquidity_level` | `string` | Discrete liquidity classification (`LOW`, `MEDIUM`, `HIGH`) | `MEDIUM` |
 | `volatility_score` | `float32` | Normalized return standard deviation ($0.0\%–100.0\%$) | `42.5` |
 | `spread_pts` | `float32` | Realized High-Low micro-spread in basis points | `1.45` |
+| `push_snap_severity` | `float32` | Push & Snap severity ($0.000$–$1.000$, velocity spike vs 300-tick MAV with $\tau=5\text{s}$ decay) | `0.425` |
+| `pinning_severity` | `float32` | Pinning severity ($0.000$–$1.000$, 20-tick clustering within $<0.005\%$ threshold) | `0.000` |
+| `manipulation_type` | `string` | Discrete manipulation classification (`NONE`, `PUSH_SNAP`, `PINNING`, `BOTH`) | `PUSH_SNAP` |
+| `is_manipulated` | `int8` | Binary manipulation filter flag (`1` if severity $>0.01$, otherwise `0`) | `1` |
 
 ---
 
@@ -52,11 +57,16 @@ import pandas as pd
 # Load sample Parquet file in < 100ms
 df = pd.read_parquet("data/samples/EURUSD_otc_sample.parquet")
 
-# 1. Inspect Continuous Sessions
+# 1. Inspect Continuous Sessions & Manipulation
 for session_id, session_df in df.groupby("session_id"):
-    print(f"Session {session_id}: {len(session_df)} ticks from {session_df['datetime_utc'].iloc[0]} to {session_df['datetime_utc'].iloc[-1]}")
+    manip_pct = (session_df["is_manipulated"] == 1).mean() * 100.0
+    print(f"Session {session_id}: {len(session_df)} ticks | Manipulation: {manip_pct:.1f}%")
 
-# 2. Resample Session 1 into 5-Second OHLCV Candles
+# 2. Filter Clean Execution Ticks (Excluding Manipulation)
+clean_ticks = df[df["is_manipulated"] == 0]
+print(f"Clean Non-Manipulated Ticks: {len(clean_ticks):,} / {len(df):,}")
+
+# 3. Resample Session 1 into 5-Second OHLCV Candles
 session_1 = df[df["session_id"] == 1].copy()
 session_1["dt"] = pd.to_datetime(session_1["timestamp"], unit="s", utc=True)
 session_1.set_index("dt", inplace=True)
